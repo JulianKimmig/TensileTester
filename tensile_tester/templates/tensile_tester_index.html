@@ -1,0 +1,25 @@
+{% extends 'plug_in_django_basic.html' %}
+{% load static %}
+{% load sekizai_tags %}
+{% block contend %}
+{% include "api_controller_sidebar.html" %}
+    <div class="topic-title h5">Tests</div>
+    <a class="btn btn-warning" href='{% url "tensile_tester:calibrate"%}'>Calibrate</a>
+    <a class="btn btn-primary" href='{% url "tensile_tester:new_measurement"%}'>+ perform Test</a>
+    <table>
+    {% for test in tensile_tests %}
+    <tr>
+        <td>{{test.name}}</td>
+        <td><a class="btn btn-primary" href='{% url "tensile_tester:view_test" id=test.id%}'>View</a></td>
+        <td>{%if test.data%}<a class="btn btn-primary" href='{{test.data.url}}' download="">Downlaod</a>{% endif %}</td>
+        <td>{%if test.image%}<img src="{{test.image.url}}" width="200"/>{% endif %}</td>
+
+    </tr>
+    {%endfor%}
+    </table>
+{% addtoblock "jss" %}
+<script>
+    arduino_api_controller.api_ws_url = "ws://"+window.location.host+"{% url 'django_arduino_controller:api_websocket'%}";
+    </script>
+    {% endaddtoblock %}
+{% endblock %}

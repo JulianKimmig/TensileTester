@@ -1,0 +1,142 @@
+{% extends 'plug_in_django_basic.html' %}
+{% load sekizai_tags %}
+{% load static %}
+{% load bootstrap4%}
+{% block contend %}
+    {% include "api_controller_sidebar.html" %}
+<div id="maincontainer" class="container">
+    <div class="row" style="min-height: 400px">
+    <div class="col col-6"><canvas id="timechart"></canvas></div>
+    <div class="col col-6"><canvas id="sschart"></canvas></div>
+    </div>
+    <div class="row">
+        <button id="pausebutton" class="btn btn-warning">pause</button>
+        <button id="continuebutton" class="btn btn-success" hidden>continue</button>
+        <button id="stopbutton" class="btn btn-danger">stop</button>
+    </div>
+</div>
+{% endblock %}
+{% block javascript%}
+    {% addtoblock "jss" %}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js" integrity="sha256-xKeoJ50pzbUGkpQxDYHD7o7hxe0LaOGeguUidbq6vis=" crossorigin="anonymous"></script>
+        <script src="{% static 'django_arduino_controller/json_websocket.js' %}"></script>
+    {% endaddtoblock %}
+    {% addtoblock "jss" %}
+        <script>
+            colors =["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd","#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf"]
+
+            let pausebutton = $('#pausebutton');
+            let continuebutton = $('#continuebutton');
+            let stopbutton = $('#stopbutton');
+            add_to_chart_set = function(set,data_dict){
+                if(Array.isArray(data_dict)){
+                    for(let i=0;i<data_dict.length;i++)
+                        set.push({x: data_dict[i][0], y: data_dict[i][1]})
+                }else {
+
+                    for (var key in data_dict) {
+                        let y = data_dict[key];
+                        if (y != null) {
+                            let x = parseFloat(key);
+                            set.push({x: x, y: y})
+                        }
+                    }
+                }
+            };
+            set_running_data = function(data){
+                console.log(data);
+                data=data.data[0];
+                console.log(data);
+                sschart.data.datasets[0].data=[];
+                timechart.data.datasets[0].data=[];
+                timechart.data.datasets[1].data=[];
+                add_to_chart_set(sschart.data.datasets[0].data,data.stress_strain);
+                add_to_chart_set(timechart.data.datasets[0].data,data.position);
+                add_to_chart_set(timechart.data.datasets[1].data,data.force);
+                sschart.update();
+                timechart.update();
+            };
+            arduino_api_controller.api_ws_url = "ws://"+window.location.host+"{% url 'django_arduino_controller:api_websocket'%}";
+            set_status = function(data){
+                if(data.data.length > 0){
+                    let code = data.data[0].code;
+
+                    if (code === 3) {
+                        pausebutton.attr('hidden', true);
+                        continuebutton.attr('hidden', false);
+                    } else if (code === 2) {
+                        pausebutton.attr('hidden', false);
+                        continuebutton.attr('hidden', true);
+                    } else {
+                        pausebutton.attr('hidden', true);
+                        continuebutton.attr('hidden', true);
+                    }
+                }
+            };
+            $(document).ready(function() {
+                var sschart_ctx = $('#sschart');
+                sschart = new Chart(sschart_ctx, {
+                    type: 'scatter',
+                    data: {
+                        labels: ["stress"],
+                        datasets: [{data:[],lineTension: 0,label: "stress [N]",fill: false,showLine: true,pointRadius: 0,borderColor:colors[2]}]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            yAxes: [{
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'stress [N]'
+                                }
+                            }],
+                            xAxes: [{
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'strain [%]'
+                                }
+                            }]
+                        }
+                    },
+                });
+                var timechart_ctx = $('#timechart');
+                timechart = new Chart(timechart_ctx, {
+                    type: 'scatter',
+                    data: {
+                        labels: ["position","force"],
+                        datasets: [
+                            {data:[],lineTension: 0,label: "position [mm]",fill: false,showLine: true,pointRadius: 0,borderColor:colors[0]},
+                            {data:[],lineTension: 0,label: "force [N]",fill: false,showLine: true,pointRadius: 0,borderColor:colors[1]}
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            xAxes: [{
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'time [s]'
+                                }
+                            }]
+                        }
+                    },
+                });
+                arduino_api_controller.api_ws.add_cmd_funcion("set_running_data", set_running_data);
+                arduino_api_controller.set_status_functions.push(set_status);
+            });
+
+
+            pausebutton.click(function(){
+                arduino_api_controller.api_ws.cmd_message("pause_run",{api: 0})
+            });
+            continuebutton.click(function(){
+                arduino_api_controller.api_ws.cmd_message("continue_run",{api: 0})
+            });
+            stopbutton.click(function(){
+                arduino_api_controller.api_ws.cmd_message("stop_run",{api: 0})
+            });
+        </script>
+    {% endaddtoblock %}
+{% endblock %}

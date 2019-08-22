@@ -1,0 +1,64 @@
+{% extends 'plug_in_django_basic.html' %}
+{% load sekizai_tags %}
+{% load static %}
+{% load bootstrap4%}
+{% block contend %}
+    {% include "api_controller_sidebar.html" %}
+<div id="maincontainer" class="container">
+    <div>
+        <ol>
+            <li>Empty device</li>
+            <li>Wait for device available <span id="device_availability"><span name="status_indicator" class="invalid"><span class="tooltiptext"></span></span></span></li>
+            <li>Zero device: <button id="tarebutton" class="btn btn-primary">tare</button> [<span datalink="value"></span>]</li>
+            <li>Insert Probe</li>
+        </ol>
+    </div>
+
+    <form id="roast_profile_data_form" method="post" >
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        <button type="submit" class="btn btn-success">run</button>
+    </form>
+</div>
+{% endblock %}
+{% block javascript%}
+    {% addtoblock "jss" %}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js" integrity="sha256-xKeoJ50pzbUGkpQxDYHD7o7hxe0LaOGeguUidbq6vis=" crossorigin="anonymous"></script>
+        <script src="{% static 'django_arduino_controller/json_websocket.js' %}"></script>
+    {% endaddtoblock %}
+    {% addtoblock "jss" %}
+        <script>
+            arduino_api_controller.api_ws_url = "ws://"+window.location.host+"{% url 'django_arduino_controller:api_websocket'%}";
+
+            let name = $('[name="name"]');
+            if(name.val() === "") {
+                let d = new Date();
+                name.val("measurment_" + d.getDate() + "-" + (d.getMonth() + 1) + "-" + d.getFullYear() + "_" +
+                    d.getHours() + "_" + d.getMinutes() + "_" + d.getSeconds());
+            }
+
+            $('#tarebutton').click(function () {
+                let send_data={api: 0,
+                };
+                arduino_api_controller.api_ws.cmd_message("tare", send_data);
+            });
+
+            let device_availability=$('#device_availability');
+            let maincontainer = $('#maincontainer');
+            function check_status() {
+                let indicator = arduino_api_controller.api_controll_panel.find('[name="status_indicator"]');
+                if(indicator.length > 0){
+                    device_availability.empty();
+                    device_availability.append(indicator.clone());
+                }
+                if(device_availability.find(".invalid").length>0){
+                    maincontainer.find('button').attr('disabled',true)
+                }else if(device_availability.find(".valid").length === indicator.length){
+                    maincontainer.find('button').attr('disabled',false)
+                }
+            }
+            check_status();
+            var t=setInterval(check_status,1000);
+        </script>
+    {% endaddtoblock %}
+{% endblock %}

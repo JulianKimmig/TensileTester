@@ -1,0 +1,33 @@
+{% extends 'plug_in_django_basic.html' %}
+{% load sekizai_tags %}
+{% load static %}
+{% block contend %}
+    {% include "api_controller_sidebar.html" %}
+    <div>
+        <ol>
+            <li>Insert spring into test device</li>
+            <li>Enter the spring rate <input id="spring_rate" type="number" value="0.751" step="0.001" min="0.001"></li>
+            <li> Enter the maximum strain <input id="max_strain" type="number" value="50" step="1" min="1"></li>
+        </ol>
+        <button id="runbutton" class="btn btn-primary">run</button>
+    </div>
+{% endblock %}
+{% block javascript%}
+    {% addtoblock "jss" %}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js" integrity="sha256-xKeoJ50pzbUGkpQxDYHD7o7hxe0LaOGeguUidbq6vis=" crossorigin="anonymous"></script>
+        <script src="{% static 'django_arduino_controller/json_websocket.js' %}"></script>
+    {% endaddtoblock %}
+    {% addtoblock "jss" %}
+        <script>
+            arduino_api_controller.api_ws_url = "ws://"+window.location.host+"{% url 'django_arduino_controller:api_websocket'%}";
+
+            $('#runbutton').click(function () {
+                let send_data={api: 0,
+                    spring_rate:Number($('#spring_rate').val()),
+                    max_strain:Number($('#max_strain').val()),
+                };
+                arduino_api_controller.api_ws.cmd_message("calibrate", send_data);
+            })
+        </script>
+    {% endaddtoblock %}
+{% endblock %}

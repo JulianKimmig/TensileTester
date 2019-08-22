@@ -1,0 +1,20 @@
+{% extends 'plug_in_django_basic.html' %}
+{% load sekizai_tags %}
+{% load static %}
+{% block contend %}
+    {% include "api_controller_sidebar.html" %}
+    {% include "api_programmer.html" %}
+{% endblock %}
+{% block javascript%}
+    {% addtoblock "jss" %}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js" integrity="sha256-xKeoJ50pzbUGkpQxDYHD7o7hxe0LaOGeguUidbq6vis=" crossorigin="anonymous"></script>
+        <script src="{% static 'django_arduino_controller/json_websocket.js' %}"></script>
+        <script type="application/javascript" src="{% static 'django_arduino_controller/arduino_api_controller.js' %}"></script>
+    {% endaddtoblock %}
+    {% addtoblock "jss" %}
+        <script>
+            //arduino_api_controller.hidden=true;
+            arduino_api_controller.api_ws_url = "ws://"+window.location.host+"{% url 'django_arduino_controller:api_websocket'%}";
+        </script>
+    {% endaddtoblock %}
+{% endblock %}
